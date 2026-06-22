@@ -1,0 +1,26 @@
+# Secrets — NEVER commit these
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Airflow
+logs/
+airflow.db
+
+# dbt
+dbt/target/
+dbt/.dbt/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
