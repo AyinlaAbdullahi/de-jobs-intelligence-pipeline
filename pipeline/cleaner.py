@@ -6,12 +6,6 @@ from db.models import RawJob as RawJobDB, Job as JobDB
 
 logger = logging.getLogger(__name__)
 
-WORLDWIDE_SIGNALS = [
-    "worldwide", "anywhere", "global", "international",
-    "work from anywhere", "fully remote", "all countries",
-    "no location restriction", "remote - worldwide",
-]
-
 
 def is_accessible_from_nigeria(location: str) -> bool:
     if not location or location.strip() == "":
@@ -19,14 +13,16 @@ def is_accessible_from_nigeria(location: str) -> bool:
 
     location_lower = location.lower().strip()
 
-    for signal in WORLDWIDE_SIGNALS:
+    # Reject only clearly onsite jobs
+    onsite_signals = [
+        "onsite", "on-site", "on site", "in office",
+        "in-office", "hybrid", "headquarters", "hq",
+    ]
+    for signal in onsite_signals:
         if signal in location_lower:
-            return True
+            return False
 
-    if location_lower in ["remote", "remote work", "work remotely"]:
-        return True
-
-    return False
+    return True
 
 
 def parse_salary(salary_raw: str) -> tuple:
