@@ -6,9 +6,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-GREENHOUSE_API = "https://boards-api.greenhouse.io/v1/boards/{company}/jobs"
+greenhouse_api = "https://boards-api.greenhouse.io/v1/boards/{company}/jobs"
+greenhouse_job_api = "https://boards-api.greenhouse.io/v1/boards/{company}/jobs/{job_id}"
 
-TARGET_COMPANIES = [
+target_companies = [
     "reddit", "pinterest", "lyft", "scaleai", "airbnb",
     "stripe", "databricks", "anthropic", "twilio", "brex",
     "robinhood", "block", "figma", "clickhouse", "mongodb",
@@ -50,9 +51,9 @@ class GreenhouseScraper(BaseScraper):
     def scrape(self) -> List[RawJob]:
         jobs = []
 
-        for company in TARGET_COMPANIES:
+        for company in target_companies:
             logger.info(f"Scraping Greenhouse: {company}")
-            response = self.get(GREENHOUSE_API.format(company=company))
+            response = self.get(greenhouse_api.format(company=company))
 
             if not response:
                 continue
@@ -64,6 +65,9 @@ class GreenhouseScraper(BaseScraper):
                 try:
                     parsed = self._parse(job, company)
                     if parsed and self.is_relevant(parsed.title):
+                        full = self._fetch_description(company, job.get("id"))
+                        if full:
+                            parsed.description = full
                         jobs.append(parsed)
                 except Exception as e:
                     logger.error(f"Failed to parse {company} job: {e}")
@@ -71,6 +75,16 @@ class GreenhouseScraper(BaseScraper):
 
         logger.info(f"Greenhouse: {len(jobs)} relevant jobs scraped")
         return jobs
+
+    def _fetch_description(self, company: str, job_id: int) -> str:
+        if not job_id:
+            return ""
+        url = greenhouse_job_api.format(company=company, job_id=job_id)
+        response = self.get(url)
+        if not response:
+            return ""
+        data = response.json()
+        return data.get("content", "")
 
     def _parse(self, job: dict, company: str) -> RawJob | None:
         title = (job.get("title") or "").strip()
