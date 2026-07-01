@@ -13,7 +13,7 @@ def is_accessible_from_nigeria(location: str) -> bool:
 
     location_lower = location.lower().strip()
 
-    # Reject only clearly onsite jobs
+    # reject clearly onsite jobs
     onsite_signals = [
         "onsite", "on-site", "on site", "in office",
         "in-office", "hybrid", "headquarters", "hq",
@@ -22,7 +22,23 @@ def is_accessible_from_nigeria(location: str) -> bool:
         if signal in location_lower:
             return False
 
-    return True
+    # accept worldwide signals
+    worldwide_signals = [
+        "worldwide", "anywhere", "global", "international",
+        "work from anywhere", "fully remote", "all countries",
+        "remote (africa", "africa friendly", "remote globally",
+        "remote - africa", "remote - worldwide",
+    ]
+    for signal in worldwide_signals:
+        if signal in location_lower:
+            return True
+
+    # accept if location contains "remote"
+    if "remote" in location_lower:
+        return True
+
+    # reject everything else
+    return False
 
 
 def parse_salary(salary_raw: str) -> tuple:
@@ -67,14 +83,14 @@ def strip_html(text: str) -> str:
 def infer_experience_level(title: str) -> str:
     title_lower = title.lower()
     if any(w in title_lower for w in ["intern", "internship"]):
-        return "INTERN"
+        return "intern"
     if any(w in title_lower for w in ["junior", "jr.", "jr ", "entry", "associate", "graduate", "new grad"]):
-        return "JUNIOR"
+        return "junior"
     if any(w in title_lower for w in ["senior", "sr.", "sr ", "lead", "principal", "staff", "head of"]):
-        return "SENIOR"
+        return "senior"
     if any(w in title_lower for w in ["manager", "director", "vp ", "vice president", "chief"]):
-        return "MANAGER"
-    return "MID"
+        return "manager"
+    return "mid"
 
 
 def infer_beginner_friendly(title: str, description: str) -> bool:

@@ -4,7 +4,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
 
-    # Database
+    # database
     postgres_host: str = "localhost"
     postgres_port: int = 5432
     postgres_user: str = "dejobs"
@@ -19,39 +19,40 @@ class Settings(BaseSettings):
             f"{self.postgres_port}/{self.postgres_db}"
         )
 
-    # Email alerts
+    # email alerts
     gmail_user: str = ""
     gmail_app_pass: str = ""
     alert_email: str = ""
+    alert_email_2: str = ""
 
-    # Pipeline
+    # pipeline
     pipeline_schedule: str = "0 6 * * *"
     min_trust_score: int = 40
     request_timeout: int = 30
     request_delay: float = 0.5
     max_retries: int = 3
 
-    # Filters
+    # filters
     target_roles: list[str] = [
-    "data engineer",
-    "analytics engineer",
-    "etl developer",
-    "etl engineer",
-    "data platform engineer",
-    "data warehouse engineer",
-    "big data engineer",
-    "cloud data engineer",
-    "analytics data engineer",
-    "staff data engineer",
-    "senior data engineer",
-    "junior data engineer",
-    "product manager",
-    "technical product manager",
-    "senior product manager",
-    "associate product manager",
-    "junior product manager",
-    "product management",
-]
+        "data engineer",
+        "analytics engineer",
+        "etl developer",
+        "etl engineer",
+        "data platform engineer",
+        "data warehouse engineer",
+        "big data engineer",
+        "cloud data engineer",
+        "analytics data engineer",
+        "staff data engineer",
+        "senior data engineer",
+        "junior data engineer",
+        "product manager",
+        "technical product manager",
+        "senior product manager",
+        "associate product manager",
+        "junior product manager",
+        "product management",
+    ]
 
     priority_skills: list[str] = [
         "python", "sql", "airflow", "spark", "kafka",
