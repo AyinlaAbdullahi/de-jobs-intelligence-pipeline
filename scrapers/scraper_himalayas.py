@@ -18,7 +18,7 @@ class HimalayasScraper(BaseScraper):
         jobs = []
         offset = 0
         limit = 100
-        max_jobs = 10000
+        max_jobs = 3000
 
         while offset < max_jobs:
             logger.info(f"Scraping Himalayas offset: {offset}")
