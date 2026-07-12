@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timezone
 from models.raw_job import RawJob
 from scrapers.base_scraper import BaseScraper
@@ -86,7 +86,7 @@ class GreenhouseScraper(BaseScraper):
         data = response.json()
         return data.get("content", "")
 
-    def _parse(self, job: dict, company: str) -> RawJob | None:
+    def _parse(self, job: dict, company: str) -> Optional[RawJob]:
         title = (job.get("title") or "").strip()
         url = (job.get("absolute_url") or "").strip()
 

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timezone
 from models.raw_job import RawJob
 from scrapers.base_scraper import BaseScraper
@@ -48,7 +48,7 @@ class RemotiveScraper(BaseScraper):
         logger.info(f"Remotive: {len(jobs)} relevant jobs scraped")
         return jobs
 
-    def _parse(self, job: dict) -> RawJob | None:
+    def _parse(self, job: dict) -> Optional[RawJob]:
         title = (job.get("title") or "").strip()
         company = (job.get("company_name") or "").strip()
         url = (job.get("url") or "").strip()

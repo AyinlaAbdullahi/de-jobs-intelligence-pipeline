@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timezone
 from models.raw_job import RawJob
 from scrapers.base_scraper import BaseScraper
@@ -53,7 +53,7 @@ class WFHNGScraper(BaseScraper):
         logger.info(f"WorkFromHome.ng: {len(unique_jobs)} relevant jobs scraped")
         return unique_jobs
 
-    def _parse(self, job: dict) -> RawJob | None:
+    def _parse(self, job: dict) -> Optional[RawJob]:
         title = job.get("title", {}).get("rendered", "").strip()
         title = BeautifulSoup(title, "html.parser").get_text()
 

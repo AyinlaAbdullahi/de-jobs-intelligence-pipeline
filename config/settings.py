@@ -1,15 +1,15 @@
-from pydantic_settings import BaseSettings
-from functools import lru_cache
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
-class Settings(BaseSettings):
-
-    # database
-    postgres_host: str = "localhost"
-    postgres_port: int = 5432
-    postgres_user: str = "dejobs"
-    postgres_password: str = "dejobs_pass"
-    postgres_db: str = "de_jobs"
+class Settings:
+    postgres_host = os.getenv("POSTGRES_HOST", "localhost")
+    postgres_port = int(os.getenv("POSTGRES_PORT", 5432))
+    postgres_user = os.getenv("POSTGRES_USER", "dejobs")
+    postgres_password = os.getenv("POSTGRES_PASSWORD", "dejobs_pass")
+    postgres_db = os.getenv("POSTGRES_DB", "de_jobs")
 
     @property
     def database_url(self) -> str:
@@ -19,21 +19,18 @@ class Settings(BaseSettings):
             f"{self.postgres_port}/{self.postgres_db}"
         )
 
-    # email alerts
-    gmail_user: str = ""
-    gmail_app_pass: str = ""
-    alert_email: str = ""
-    alert_email_2: str = ""
+    gmail_user = os.getenv("GMAIL_USER", "")
+    gmail_app_pass = os.getenv("GMAIL_APP_PASS", "")
+    alert_email = os.getenv("ALERT_EMAIL", "")
+    alert_email_2 = os.getenv("ALERT_EMAIL_2", "")
 
-    # pipeline
-    pipeline_schedule: str = "0 6 * * *"
-    min_trust_score: int = 40
-    request_timeout: int = 30
-    request_delay: float = 0.5
-    max_retries: int = 3
+    pipeline_schedule = "0 6 * * *"
+    min_trust_score = 40
+    request_timeout = 30
+    request_delay = 0.5
+    max_retries = 3
 
-    # filters
-    target_roles: list[str] = [
+    target_roles = [
         "data engineer",
         "analytics engineer",
         "etl developer",
@@ -54,23 +51,12 @@ class Settings(BaseSettings):
         "product management",
     ]
 
-    priority_skills: list[str] = [
+    priority_skills = [
         "python", "sql", "airflow", "spark", "kafka",
         "dbt", "snowflake", "databricks", "aws", "gcp",
         "azure", "docker", "kubernetes", "terraform",
         "redshift", "bigquery", "postgres", "etl", "elt",
     ]
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        extra = "ignore"
 
-
-@lru_cache()
-def get_settings() -> Settings:
-    return Settings()
-
-
-settings = get_settings()
+settings = Settings()

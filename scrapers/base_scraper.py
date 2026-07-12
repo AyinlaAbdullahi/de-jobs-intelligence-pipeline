@@ -1,3 +1,4 @@
+from typing import Optional
 from abc import ABC, abstractmethod
 from typing import List
 from models.raw_job import RawJob
@@ -23,7 +24,7 @@ class BaseScraper(ABC):
         #Every scraper must implement this method.
         pass
 
-    def get(self, url: str) -> requests.Response | None:
+    def get(self, url: str) -> Optional[requests.Response]:
         #Makes an HTTP GET request with retries and delay.
         for attempt in range(settings.max_retries):
             try:

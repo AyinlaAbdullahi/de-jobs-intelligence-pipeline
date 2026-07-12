@@ -1,6 +1,12 @@
+import sys
+import os
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+
+# load env variables directly
+from dotenv import load_dotenv
+load_dotenv("/opt/airflow/dags/.env")
 
 default_args = {
     "owner": "abdullahi",
@@ -20,6 +26,7 @@ dag = DAG(
 
 
 def run_scrapers():
+    sys.path.insert(0, "/opt/airflow/dags")
     from scrapers.scraper_greenhouse import GreenhouseScraper
     from scrapers.scraper_himalayas import HimalayasScraper
     from scrapers.scraper_wfhng import WFHNGScraper
@@ -35,18 +42,21 @@ def run_scrapers():
 
 
 def run_cleaner():
+    sys.path.insert(0, "/opt/airflow/dags")
     from pipeline.cleaner import clean_jobs
     result = clean_jobs()
     print(f"Accepted: {result['accepted']}, Rejected: {result['rejected']}")
 
 
 def run_scorer():
+    sys.path.insert(0, "/opt/airflow/dags")
     from pipeline.trust_scorer import score_all_jobs
     result = score_all_jobs()
     print(f"Scored: {result['scored']}")
 
 
 def run_email():
+    sys.path.insert(0, "/opt/airflow/dags")
     from pipeline.email_alert import send_daily_alerts
     send_daily_alerts()
     print("Email alerts sent")

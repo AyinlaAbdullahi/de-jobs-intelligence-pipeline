@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timezone
 from models.raw_job import RawJob
 from scrapers.base_scraper import BaseScraper
@@ -54,7 +54,7 @@ class HimalayasScraper(BaseScraper):
         logger.info(f"Himalayas: {len(unique_jobs)} relevant jobs from {offset} scanned")
         return unique_jobs
 
-    def _parse(self, job: dict) -> RawJob | None:
+    def _parse(self, job: dict) -> Optional[RawJob]:
         title = (job.get("title") or "").strip()
         company = (job.get("companyName") or "").strip()
         url = (job.get("applicationLink") or job.get("guid") or "").strip()
