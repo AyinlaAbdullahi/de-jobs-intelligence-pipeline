@@ -1,6 +1,5 @@
-from typing import Optional
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 from models.raw_job import RawJob
 import requests
 import time
@@ -21,11 +20,9 @@ class BaseScraper(ABC):
 
     @abstractmethod
     def scrape(self) -> List[RawJob]:
-        #Every scraper must implement this method.
         pass
 
     def get(self, url: str) -> Optional[requests.Response]:
-        #Makes an HTTP GET request with retries and delay.
         for attempt in range(settings.max_retries):
             try:
                 time.sleep(settings.request_delay)
@@ -39,6 +36,5 @@ class BaseScraper(ABC):
                     return None
 
     def is_relevant(self, title: str) -> bool:
-        #Checks if a job title matches our target roles.
         title_lower = title.lower()
         return any(role in title_lower for role in settings.target_roles)

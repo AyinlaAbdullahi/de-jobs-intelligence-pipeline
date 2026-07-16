@@ -1,3 +1,9 @@
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import json
+import concurrent.futures
 from typing import List, Optional
 from datetime import datetime, timezone
 from models.raw_job import RawJob
@@ -9,38 +15,18 @@ logger = logging.getLogger(__name__)
 greenhouse_api = "https://boards-api.greenhouse.io/v1/boards/{company}/jobs"
 greenhouse_job_api = "https://boards-api.greenhouse.io/v1/boards/{company}/jobs/{job_id}"
 
-target_companies = [
-    "reddit", "pinterest", "lyft", "scaleai", "airbnb",
-    "stripe", "databricks", "anthropic", "twilio", "brex",
-    "robinhood", "block", "figma", "clickhouse", "mongodb",
-    "elastic", "hightouch", "datadog", "yugabyte", "collibra",
-    "intercom", "klaviyo", "samsara", "verkada", "gusto",
-    "chime", "nubank", "instacart", "adyen", "monzo",
-    "asana", "peloton", "marqeta", "airtable", "lattice",
-    "n26", "upwork", "sendbird", "mixpanel", "paystack",
-    "zscaler", "cloudflare", "fastly", "amplitude", "braze",
-    "iterable", "attentive", "postscript", "discord", "dropbox",
-    "gitlab", "circleci", "fivetran", "sisense", "dremio",
-    "starburst", "imply", "algolia", "mercury", "current",
-    "alpaca", "gemini", "payoneer", "c6bank", "inter",
-    "greenhouse", "justworks", "remote", "oura", "newrelic",
-    "cortex", "pagerduty", "planetscale", "beam", "labelbox",
-    "tanium", "sonicwall", "okta", "buzzfeed", "insider",
-    "axios", "zocdoc", "vercel", "netlify", "make", "workato",
-    "postman", "launchdarkly", "dataiku", "sas", "anaplan",
-    "calendly", "pandadoc", "veracode", "beyondtrust", "doximity",
-    "faire", "taskrabbit", "fetch", "bark", "branch", "orchard",
-    "knock", "webflow", "glide", "salesloft", "zuora",
-    "aftership", "narvar", "loop", "squarespace", "myfitnesspal",
-    "calm", "talkspace", "cerebral", "comet", "toloka",
-    "remotasks", "highnote", "lithic", "sezzle", "affirm",
-    "crisp", "consensys", "fireblocks", "ripple", "bitgo",
-    "spacex", "relativity", "astranis", "spire", "waymo",
-    "motional", "duolingo", "coursera", "udacity", "skillsoft",
-    "carta", "twitch", "rumble", "affinity", "pendo", "userflow",
-    "oddball", "fingerprint", "fleetio", "tucows",
-    "knack", "godaddy", "customerio", "ebury",
-]
+
+def load_target_companies() -> List[str]:
+    path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "data", "companies", "relevant_greenhouse_companies.json"
+    )
+    with open(path) as f:
+        data = json.load(f)
+    return [company["slug"] for company in data]
+
+
+target_companies = load_target_companies()
 
 
 class GreenhouseScraper(BaseScraper):
@@ -51,30 +37,48 @@ class GreenhouseScraper(BaseScraper):
     def scrape(self) -> List[RawJob]:
         jobs = []
 
-        for company in target_companies:
-            logger.info(f"Scraping Greenhouse: {company}")
-            response = self.get(greenhouse_api.format(company=company))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
+            futures = {
+                executor.submit(self._scrape_company, company): company
+                for company in target_companies
+            }
 
-            if not response:
+            for future in concurrent.futures.as_completed(futures):
+                company = futures[future]
+                try:
+                    company_jobs = future.result()
+                    jobs.extend(company_jobs)
+                except Exception as e:
+                    logger.error(f"Failed to scrape {company}: {e}")
+
+        logger.info(f"Greenhouse: {len(jobs)} relevant jobs scraped from {len(target_companies)} companies")
+        return jobs
+
+    def _scrape_company(self, company: str) -> List[RawJob]:
+        company_jobs = []
+        response = self.get(greenhouse_api.format(company=company))
+
+        if not response:
+            return company_jobs
+
+        raw_jobs = response.json().get("jobs", [])
+
+        for job in raw_jobs:
+            try:
+                parsed = self._parse(job, company)
+                if parsed and self.is_relevant(parsed.title):
+                    full = self._fetch_description(company, job.get("id"))
+                    if full:
+                        parsed.description = full
+                    company_jobs.append(parsed)
+            except Exception as e:
+                logger.error(f"Failed to parse {company} job: {e}")
                 continue
 
-            raw_jobs = response.json().get("jobs", [])
-            logger.info(f"{company}: {len(raw_jobs)} total jobs")
+        if company_jobs:
+            logger.info(f"{company}: {len(company_jobs)} relevant jobs found")
 
-            for job in raw_jobs:
-                try:
-                    parsed = self._parse(job, company)
-                    if parsed and self.is_relevant(parsed.title):
-                        full = self._fetch_description(company, job.get("id"))
-                        if full:
-                            parsed.description = full
-                        jobs.append(parsed)
-                except Exception as e:
-                    logger.error(f"Failed to parse {company} job: {e}")
-                    continue
-
-        logger.info(f"Greenhouse: {len(jobs)} relevant jobs scraped")
-        return jobs
+        return company_jobs
 
     def _fetch_description(self, company: str, job_id: int) -> str:
         if not job_id:
@@ -93,6 +97,9 @@ class GreenhouseScraper(BaseScraper):
         if not all([title, url]):
             return None
 
+        real_company_name = (job.get("company_name") or "").strip()
+        company_display = real_company_name if real_company_name else company.title()
+
         location_data = job.get("location", {})
         location = (location_data.get("name") or "") if isinstance(location_data, dict) else ""
 
@@ -107,7 +114,7 @@ class GreenhouseScraper(BaseScraper):
         return RawJob(
             source="greenhouse",
             title=title,
-            company=company.title(),
+            company=company_display,
             url=url,
             location=location,
             posted_at=posted_at,
