@@ -4,10 +4,40 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import streamlit as st
 import pandas as pd
 from db.connection import get_session
-from db.models import Job as JobDB
+from db.models import Job as JobDB, RawJob as RawJobDB
 
 st.set_page_config(page_title="DE Jobs Dashboard", layout="wide")
 st.title("DE Jobs Intelligence Dashboard")
+
+
+def is_genuinely_unrestricted(location):
+    if not location:
+        return False
+    location_lower = location.lower()
+    if location_lower == "remote":
+        return True
+    if "africa friendly" in location_lower:
+        return True
+    if "worldwide" in location_lower:
+        return True
+    if "anywhere" in location_lower:
+        return True
+    if "global" in location_lower:
+        return True
+    return False
+
+
+def has_visa_warning(description):
+    if not description:
+        return False
+    description_lower = description.lower()
+    warning_phrases = [
+        "visa sponsorship", "sponsor visa", "no sponsorship",
+        "authorized to work in", "work authorization",
+        "must be based in", "must reside in",
+        "on-site", "in-office", "hybrid",
+    ]
+    return any(phrase in description_lower for phrase in warning_phrases)
 
 
 def load_jobs():
@@ -16,8 +46,14 @@ def load_jobs():
             JobDB.is_active == True
         ).order_by(JobDB.ranking_score.desc()).all()
 
-        return pd.DataFrame([
-            {
+        job_list = []
+        for job in jobs:
+            raw = session.query(RawJobDB).filter(
+                RawJobDB.job_hash == job.job_hash
+            ).first()
+            description = raw.description if raw else ""
+
+            job_list.append({
                 "title": job.title,
                 "company": job.company_name,
                 "location": job.location,
@@ -29,12 +65,15 @@ def load_jobs():
                 "beginner_friendly": job.beginner_friendly,
                 "url": job.url,
                 "posted_at": job.posted_at,
-            }
-            for job in jobs
-        ])
+                "description": description,
+            })
+
+        return pd.DataFrame(job_list)
 
 
 df = load_jobs()
+df["unrestricted"] = df["location"].apply(is_genuinely_unrestricted)
+df["has_warning"] = df["description"].apply(has_visa_warning)
 
 # sidebar filters
 st.sidebar.header("filters")
@@ -58,6 +97,7 @@ experience_filter = st.sidebar.multiselect(
 )
 
 beginner_only = st.sidebar.checkbox("beginner friendly only")
+unrestricted_only = st.sidebar.checkbox("genuinely unrestricted only", help="only show jobs with no country restriction - accessible from anywhere including Lagos")
 
 # apply filters
 filtered = df[df["score"] >= score_filter]
@@ -77,12 +117,16 @@ if experience_filter:
 if beginner_only:
     filtered = filtered[filtered["beginner_friendly"] == True]
 
+if unrestricted_only:
+    filtered = filtered[filtered["unrestricted"] == True]
+
 # metrics row
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 col1.metric("total jobs", len(df))
 col2.metric("filtered jobs", len(filtered))
 col3.metric("strong matches (60+)", len(df[df["score"] >= 60]))
 col4.metric("beginner friendly", len(df[df["beginner_friendly"] == True]))
+col5.metric("genuinely unrestricted", len(df[df["unrestricted"] == True]))
 
 st.divider()
 
@@ -95,7 +139,9 @@ for _, job in filtered.iterrows():
         col1, col2 = st.columns([4, 1])
         with col1:
             st.markdown(f"**{job['title']}**")
-            st.caption(f"{job['company']} | {job['location']} | {job['experience']}")
+            unrestricted_tag = " · Unrestricted" if job["unrestricted"] else ""
+            warning_tag = " · Verify details" if job["has_warning"] else ""
+            st.caption(f"{job['company']} | {job['location']}{unrestricted_tag}{warning_tag} | {job['experience']}")
             if job["salary_min"] and job["salary_max"]:
                 st.caption(f"salary: ${job['salary_min']:,.0f} - ${job['salary_max']:,.0f}")
             st.caption(f"source: {job['source']}")
