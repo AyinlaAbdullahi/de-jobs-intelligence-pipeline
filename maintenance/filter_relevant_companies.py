@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import requests
 import concurrent.futures
-from config.settings import settings
+from app_config.settings import settings
 
 with open("data/companies/verified_greenhouse_companies.json") as f:
     verified_companies = json.load(f)

@@ -4,7 +4,7 @@ from models.raw_job import RawJob
 import requests
 import time
 import logging
-from config.settings import settings
+from app_config.settings import settings
 
 logger = logging.getLogger(__name__)
 

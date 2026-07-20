@@ -38,3 +38,7 @@ pipeline/logs/
 
 # pytest
 .pytest_cache/
+
+# renamed log folders (from folder consolidation)
+airflow_logs/
+dbt_logs/

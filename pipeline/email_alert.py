@@ -5,7 +5,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from db.connection import get_session
 from db.models import Job as JobDB
-from config.settings import settings
+from app_config.settings import settings
 
 logger = logging.getLogger(__name__)
 

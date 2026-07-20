@@ -7,6 +7,7 @@ from airflow.operators.python import PythonOperator
 # load env variables directly
 from dotenv import load_dotenv
 load_dotenv("/opt/airflow/dags/.env")
+os.environ["POSTGRES_HOST"] = "host.docker.internal"
 
 default_args = {
     "owner": "abdullahi",
