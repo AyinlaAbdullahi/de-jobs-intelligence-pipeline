@@ -1,5 +1,6 @@
 import sys
 import os
+import subprocess
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -56,6 +57,19 @@ def run_scorer():
     print(f"Scored: {result['scored']}")
 
 
+def run_dbt():
+    result = subprocess.run(
+        ["dbt", "run"],
+        cwd="/opt/airflow/dags/dbt",
+        capture_output=True,
+        text=True,
+    )
+    print(result.stdout)
+    if result.returncode != 0:
+        print(result.stderr)
+        raise Exception(f"dbt run failed with exit code {result.returncode}")
+
+
 def run_email():
     sys.path.insert(0, "/opt/airflow/dags")
     from pipeline.email_alert import send_daily_alerts
@@ -81,10 +95,16 @@ score_task = PythonOperator(
     dag=dag,
 )
 
+dbt_task = PythonOperator(
+    task_id="run_dbt",
+    python_callable=run_dbt,
+    dag=dag,
+)
+
 email_task = PythonOperator(
     task_id="send_email",
     python_callable=run_email,
     dag=dag,
 )
 
-scrape_task >> clean_task >> score_task >> email_task
+scrape_task >> clean_task >> score_task >> dbt_task >> email_task

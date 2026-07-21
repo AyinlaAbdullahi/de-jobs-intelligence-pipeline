@@ -1,19 +1,9 @@
 import logging
 from db.connection import get_session
 from db.models import Job as JobDB, RawJob as RawJobDB
+from app_config.role_skills import role_skills, get_role_type
 
 logger = logging.getLogger(__name__)
-
-your_skills = [
-    "python", "sql", "airflow", "dbt", "docker",
-    "postgresql", "postgres", "snowflake", "streamlit",
-    "pandas", "git", "github", "azure", "databricks",
-    "spark", "pyspark", "etl", "elt", "pipeline",
-]
-
-priority_skills = [
-    "python", "sql", "airflow", "dbt", "spark", "azure",
-]
 
 experience_scores = {
     "intern":  20,
@@ -31,7 +21,12 @@ def score_skills(description: str, title: str) -> int:
     text = f"{title} {description}".lower()
     score = 0
 
-    for skill in your_skills:
+    role_type = get_role_type(title)
+    config = role_skills[role_type]
+    skills = config["skills"]
+    priority_skills = config["priority_skills"]
+
+    for skill in skills:
         if skill in text:
             score += 2
             if skill in priority_skills:

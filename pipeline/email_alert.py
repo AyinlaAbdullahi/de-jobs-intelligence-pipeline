@@ -29,7 +29,8 @@ def get_new_jobs():
                 "location": job.location,
                 "score": job.ranking_score,
                 "experience": job.experience_level,
-                "salary": f"${job.salary_min:,.0f} - ${job.salary_max:,.0f}" if job.salary_min and job.salary_max else "not listed",
+                "salary_min": job.salary_min,
+                "salary_max": job.salary_max,
                 "url": job.url,
                 "source": job.source,
                 "beginner_friendly": job.beginner_friendly,
@@ -41,37 +42,90 @@ def get_new_jobs():
 def build_email(jobs: list, recipient_name: str, role_type: str) -> str:
     date_str = datetime.now().strftime("%B %d, %Y")
 
-    html = f"""
-    <html>
-    <body style="font-family: Arial, sans-serif; max-width: 700px; margin: auto; color: #333;">
-
-    <h2 style="color: #2c3e50;">daily job digest - {date_str}</h2>
-    <p>hi {recipient_name}, here are today's top {role_type} matches.</p>
-    <p><strong>{len(jobs)} new jobs</strong> found today scoring above {min_score}/100.</p>
-
-    <hr>
-    """
-
+    rows_html = ""
     for job in jobs:
-        score_color = "#27ae60" if job["score"] >= 60 else "#f39c12"
-        beginner_tag = " <span style='background:#27ae60;color:white;padding:2px 6px;border-radius:4px;font-size:11px;'>beginner friendly</span>" if job["beginner_friendly"] else ""
-        html += f"""
-        <div style="border:1px solid #ddd;border-radius:6px;padding:14px;margin-bottom:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <strong style="font-size:15px;">{job["title"]}</strong>
-                <span style="background:{score_color};color:white;padding:3px 8px;border-radius:12px;font-size:13px;">{int(job["score"])}/100</span>
-            </div>
-            <div style="color:#555;margin-top:4px;">{job["company"]} &nbsp;|&nbsp; {job["location"]} &nbsp;|&nbsp; {job["experience"]}{beginner_tag}</div>
-            <div style="color:#888;font-size:13px;margin-top:4px;">salary: {job["salary"]} &nbsp;|&nbsp; source: {job["source"]}</div>
-            <div style="margin-top:8px;">
-                <a href="{job["url"]}" style="background:#2980b9;color:white;padding:6px 14px;border-radius:4px;text-decoration:none;font-size:13px;">apply now</a>
-            </div>
-        </div>
+        salary_line = ""
+        if job.get("salary_min") and job.get("salary_max"):
+            salary_line = (
+                f'<div style="font-family:\'Courier New\',monospace;font-size:12px;'
+                f'color:#8a9bb0;margin-top:4px;">'
+                f'${job["salary_min"]:,.0f} - ${job["salary_max"]:,.0f}</div>'
+            )
+
+        rows_html += f"""
+        <tr>
+          <td style="padding:0 0 14px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                   style="background-color:#16324d;border:1px solid #2a4058;border-left:3px solid #d98953;border-radius:4px;">
+              <tr>
+                <td style="padding:16px 20px;">
+                  <div style="font-family:Arial,sans-serif;font-size:15px;font-weight:bold;color:#f4ede1;">
+                    {job['title']}
+                  </div>
+                  <div style="font-family:Arial,sans-serif;font-size:13px;color:#9fb0c3;margin-top:3px;">
+                    {job['company']} &middot; {job['location']} &middot;
+                    <span style="font-family:'Courier New',monospace;">{job['source']}</span>
+                  </div>
+                  {salary_line}
+                  <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:10px;">
+                    <tr>
+                      <td style="font-family:'Courier New',monospace;font-size:11px;color:#d98953;
+                                 border:1px solid #4a3520;border-radius:3px;padding:2px 8px;">
+                        {int(job['score'])}/100
+                      </td>
+                      <td style="width:8px;"></td>
+                      <td style="font-family:'Courier New',monospace;font-size:11px;color:#9fb0c3;
+                                 border:1px solid #2a4058;border-radius:3px;padding:2px 8px;">
+                        {(job['experience'] or 'N/A').upper()}
+                      </td>
+                    </tr>
+                  </table>
+                  <div style="margin-top:12px;">
+                    <a href="{job['url']}"
+                       style="display:inline-block;background-color:#d98953;color:#12283f;
+                              font-family:Arial,sans-serif;font-size:13px;font-weight:bold;
+                              text-decoration:none;padding:8px 18px;border-radius:3px;">
+                      Apply Now
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
         """
 
-    html += """
-    <hr>
-    <p style="color:#aaa;font-size:12px;">powered by de jobs intelligence pipeline</p>
+    html = f"""
+    <html>
+    <body style="margin:0;padding:0;background-color:#0e1e30;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0e1e30;">
+      <tr>
+        <td align="center" style="padding:24px 16px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="border:1px solid #2a4058;border-left:3px solid #d98953;
+                         background-color:#12283f;padding:20px 24px;border-radius:4px;">
+                <div style="font-family:Arial,sans-serif;font-size:22px;font-weight:bold;color:#f4ede1;">
+                  Job Digest &middot; {date_str}
+                </div>
+                <div style="font-family:'Courier New',monospace;font-size:12px;color:#8a9bb0;margin-top:6px;">
+                  {len(jobs)} {role_type} matches &middot; scoring above {min_score}/100
+                </div>
+              </td>
+            </tr>
+            <tr><td style="height:20px;"></td></tr>
+            {rows_html}
+            <tr>
+              <td style="padding-top:10px;">
+                <div style="font-family:'Courier New',monospace;font-size:11px;color:#5a6a7e;">
+                  DE Jobs Intelligence Pipeline
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
     </body>
     </html>
     """
@@ -91,7 +145,7 @@ def send_email(recipient_email: str, recipient_name: str, jobs: list, role_type:
     msg["to"] = recipient_email
     msg["Reply-To"] = settings.gmail_user
 
-    plain = f"daily job digest - {datetime.now().strftime('%B %d, %Y')}\n\n"
+    plain = f"job digest - {datetime.now().strftime('%B %d, %Y')}\n\n"
     plain += f"hi {recipient_name}, here are today's top {role_type} matches.\n\n"
     for job in jobs:
         plain += f"{job['title']} - {job['company']}\n"
